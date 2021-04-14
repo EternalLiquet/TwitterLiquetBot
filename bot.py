@@ -17,10 +17,12 @@ oauth.set_access_token(ACCESS_TOKEN, TOKEN_SECRET)
 api = tweepy.API(oauth, wait_on_rate_limit = True, wait_on_rate_limit_notify = True)
 
 try:
-    api.verify_credentials()
-    print("Authentication SUCCESS")
-except:
-    print("Authentication ERROR")
+    print(twitter_api.verify_credentials())
+    print("Successfully logged in")
+except tweepy.TweepError as e:
+    print(e)
+except Exception as e:
+    print(e)
 
 tweets_listener = StreamListener(api)
 tweet_stream = tweepy.Stream(api.auth, tweets_listener)

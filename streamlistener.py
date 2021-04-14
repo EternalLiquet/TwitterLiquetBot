@@ -15,6 +15,9 @@ class StreamListener(tweepy.StreamListener):
     def return_unfavorable_desc_string(self, tweet, unfavorability_index, found_words):
         return f"{tweet.user.screen_name} has an unfavorable description at {unfavorability_index} and unlikely to produce good content! Words {found_words} in description: {tweet.user.description}\n"
 
+    def return_favorable_desc_string(self, tweet, favorability_index, found_words):
+        return f"{tweet.user.screen_name} has a description score of {favorability_index}. Words {found_words} in description: {tweet.user.description}\n"
+
     def determine_bot_chance(self, tweet):
         bot_chance = 0
         found_words = []
@@ -61,13 +64,34 @@ class StreamListener(tweepy.StreamListener):
                 if tweet.user.description not in current_file:
                     descriptions_file.write(f"{tweet.user.description}\n")
         return unfavorability_index
+
+    def determine_favorability(self, tweet):
+        favorability_index = 0
+        found_words = []
+        with open("favorable_words.txt", "r", encoding="utf-8") as favorable_words_file:
+            file_contents = favorable_words_file.read()
+            favorable_words = file_contents.splitlines()
+        if tweet.user.description is not None:
+            for word in favorable_words:
+                if word.lower() in tweet.user.description.lower():
+                    favorability_index += 10
+                    found_words.append(word)
+            print(self.return_favorable_desc_string(tweet, favorability_index, found_words))
+            print(self.return_divider())
+            if favorability_index >= 50:
+                with open("favorable_descriptions.txt", "a+", encoding="utf-8") as favorable_desc_file:
+                    favorable_desc_file.seek(0)
+                    current_file = favorable_desc_file.read()
+                    if tweet.user.description not in current_file:
+                        favorable_desc_file.write(f"{tweet.user.description}\n")
+        return favorability_index
     
     def on_status(self, tweet):
         if tweet.in_reply_to_status_id is not None or tweet.user.id == self.me.id:
             return
         if (self.determine_bot_chance(tweet) >= 60):
             return
-        if (self.determine_unfavorability(tweet) >= 60):
+        if ((self.determine_unfavorability(tweet) - self.determine_favorability(tweet)) >= 60):
             return
         if not tweet.favorited:
             try:
